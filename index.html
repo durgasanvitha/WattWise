@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="electricityApp">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WattWise | Electricity Usage Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+  <script src="app.js"></script>
+</head>
+<body ng-controller="MainController" ng-cloak>
+  <section class="auth-screen" ng-if="!currentUser">
+    <div class="auth-art">
+      <div class="brand-mark">⚡</div>
+      <p class="eyebrow">WATTWISE ENERGY</p>
+      <h1>Use energy<br><span>more wisely.</span></h1>
+      <p class="muted-light">Understand your electricity habits, lower your estimated bills, and build smarter daily routines.</p>
+      <div class="auth-points">
+        <div>✓ Track meter readings</div>
+        <div>✓ Estimate bills and savings</div>
+        <div>✓ Get practical energy tips</div>
+      </div>
+    </div>
+    <div class="auth-panel">
+      <div class="mobile-brand"><span class="brand-mark small">⚡</span> WattWise</div>
+      <div class="auth-tabs">
+        <button ng-class="{active:authMode==='login'}" ng-click="authMode='login';authError=''">Login</button>
+        <button ng-class="{active:authMode==='register'}" ng-click="authMode='register';authError=''">Create account</button>
+      </div>
+      <div ng-if="authMode==='login'">
+        <h2>Welcome back</h2><p class="subtext">Sign in to check your energy dashboard.</p>
+        <form ng-submit="login()">
+          <label>Email address<input type="email" ng-model="auth.email" placeholder="you@example.com" required></label>
+          <label>Password<div class="password-row"><input ng-attr-type="{{showPassword ? 'text' : 'password'}}" ng-model="auth.password" placeholder="Enter your password" required><button type="button" class="eye" ng-click="showPassword=!showPassword">{{showPassword?'Hide':'Show'}}</button></div></label>
+          <p class="error" ng-if="authError">{{authError}}</p>
+          <button class="primary full" type="submit">Login to dashboard <span>→</span></button>
+        </form>
+        <p class="demo-note">New here? Create an account to get started.</p>
+      </div>
+      <div ng-if="authMode==='register'">
+        <h2>Create your account</h2><p class="subtext">Your personal energy-saving space.</p>
+        <form ng-submit="register()">
+          <label>Full name<input ng-model="auth.name" placeholder="Your name" required></label>
+          <label>Email address<input type="email" ng-model="auth.email" placeholder="you@example.com" required></label>
+          <label>Password<input type="password" ng-model="auth.password" minlength="6" placeholder="At least 6 characters" required></label>
+          <label>Confirm password<input type="password" ng-model="auth.confirmPassword" placeholder="Re-enter password" required></label>
+          <p class="error" ng-if="authError">{{authError}}</p>
+          <button class="primary full" type="submit">Create account <span>→</span></button>
+        </form>
+        <p class="demo-note">Demo project: account data is stored in this browser only.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="app-shell" ng-if="currentUser">
+    <aside class="sidebar" ng-class="{open:mobileMenu}">
+      <div class="brand"><span class="brand-mark small">⚡</span><span>WattWise</span></div>
+      <div class="profile-mini"><div class="avatar">{{currentUser.name.charAt(0).toUpperCase()}}</div><div><strong>{{currentUser.name}}</strong><small>Home energy</small></div></div>
+      <p class="nav-label">WORKSPACE</p>
+      <button class="nav-item" ng-class="{selected:page==='dashboard'}" ng-click="go('dashboard')">▦ <span>Dashboard</span></button>
+      <button class="nav-item" ng-class="{selected:page==='readings'}" ng-click="go('readings')">▤ <span>Meter readings</span></button>
+      <button class="nav-item" ng-class="{selected:page==='appliances'}" ng-click="go('appliances')">⌁ <span>Appliance estimator</span></button>
+      <button class="nav-item" ng-class="{selected:page==='saving'}" ng-click="go('saving')">✦ <span>Saving coach</span></button>
+      <button class="nav-item" ng-class="{selected:page==='reports'}" ng-click="go('reports')">▥ <span>Reports & goals</span></button>
+      <div class="sidebar-bottom"><div class="side-tip"><span>💡</span><strong>Small changes add up</strong><p>Check your usage weekly and try one saving tip at a time.</p></div><button class="nav-item logout" ng-click="logout()">↪ <span>Log out</span></button></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="menu-toggle" ng-click="mobileMenu=!mobileMenu">☰</button>
+        <div><p class="eyebrow">YOUR ENERGY, YOUR CONTROL</p><h1>{{pageTitle()}}</h1></div>
+        <div class="top-actions"><span class="date-chip">{{todayLabel}}</span><div class="avatar">{{currentUser.name.charAt(0).toUpperCase()}}</div></div>
+      </header>
+
+      <div class="notice success" ng-if="flashMessage">✓ {{flashMessage}} <button ng-click="flashMessage=''">×</button></div>
+      <div class="notice warning" ng-if="budgetWarning">⚠ {{budgetWarning}}</div>
+
+      <section ng-if="page==='dashboard'">
+        <div class="welcome-row"><div><h2>Hi {{currentUser.name.split(' ')[0]}}, here's your energy snapshot.</h2><p class="subtext">Small improvements today can make a difference over time.</p></div><button class="primary" ng-click="go('readings')">＋ Add reading</button></div>
+        <div class="stats-grid">
+          <div class="metric-card"><div class="metric-icon teal">ϟ</div><span>Total units tracked</span><h2>{{totalUnits() | number:1}} <small>kWh</small></h2><p class="metric-foot">Across saved meter periods</p></div>
+          <div class="metric-card"><div class="metric-icon blue">₹</div><span>Estimated bill total</span><h2>₹{{totalBill() | number:0}}</h2><p class="metric-foot">Using your demo tariff</p></div>
+          <div class="metric-card"><div class="metric-icon orange">◷</div><span>This month's usage</span><h2>{{monthUnits() | number:1}} <small>kWh</small></h2><p class="metric-foot">{{monthChangeText()}}</p></div>
+          <div class="metric-card"><div class="metric-icon purple">◎</div><span>Potential savings</span><h2>₹{{potentialSavings() | number:0}}</h2><p class="metric-foot">Estimate at 10% lower usage</p></div>
+        </div>
+        <div class="dashboard-grid">
+          <div class="panel chart-panel"><div class="panel-heading"><div><h3>Usage overview</h3><p class="subtext">Your latest saved reading periods</p></div><span class="pill">kWh</span></div>
+            <div class="chart" ng-if="chartReadings().length">
+              <div class="chart-column" ng-repeat="r in chartReadings() track by r.id"><strong>{{r.units | number:0}}</strong><div class="bar-wrap"><div class="bar" ng-style="{'height':barHeight(r.units)}"></div></div><small>{{r.date | date:'dd MMM'}}</small></div>
+            </div>
+            <div class="empty-state" ng-if="!chartReadings().length"><div>▥</div><strong>No readings yet</strong><p>Add your first meter reading to see usage trends.</p><button class="secondary" ng-click="go('readings')">Add a reading</button></div>
+          </div>
+          <div class="panel budget-panel"><div class="panel-heading"><div><h3>Monthly budget</h3><p class="subtext">Estimated spend this month</p></div><span class="budget-symbol">₹</span></div>
+            <div class="budget-total">₹{{monthBill() | number:0}} <small>/ ₹{{budget | number:0}}</small></div>
+            <div class="progress"><div ng-class="budgetProgressClass()" ng-style="{width:budgetPercent()+'%'}"></div></div>
+            <div class="budget-meta"><span>{{budgetPercent() | number:0}}% used</span><span>₹{{budgetRemaining() | number:0}} left</span></div>
+            <label class="compact-label">Set monthly budget (₹)<input type="number" min="1" ng-model="settings.budgetDraft"></label>
+            <button class="secondary full" ng-click="saveBudget()">Update budget</button>
+            <p class="small-note" ng-if="budgetPercent()>=80">You're close to your budget. Try the saving coach for ideas.</p>
+          </div>
+        </div>
+        <div class="panel"><div class="panel-heading"><div><h3>Recommended actions</h3><p class="subtext">Quick steps to help lower electricity use</p></div><button class="text-button" ng-click="go('saving')">View all tips →</button></div>
+          <div class="recommend-grid"><div class="recommend" ng-repeat="tip in dashboardTips()"><span>{{tip.icon}}</span><div><strong>{{tip.title}}</strong><p>{{tip.text}}</p></div></div></div>
+        </div>
+      </section>
+
+      <section ng-if="page==='readings'">
+        <div class="page-intro"><h2>Meter readings</h2><p class="subtext">Record meter readings to estimate units and electricity costs.</p></div>
+        <div class="panel">
+          <h3>Add a reading</h3>
+          <form class="form-grid" ng-submit="addReading()">
+            <label>Reading date<input type="date" ng-model="readingForm.date" required></label>
+            <label>Previous meter reading (kWh)<input type="number" min="0" step="any" ng-model="readingForm.previous" required></label>
+            <label>Current meter reading (kWh)<input type="number" min="0" step="any" ng-model="readingForm.current" required></label>
+            <label>Tariff (₹ per unit)<input type="number" min="0" step="any" ng-model="settings.tariff" required></label>
+            <div class="form-hint">Units = current reading − previous reading.</div><button class="primary" type="submit">Save reading</button>
+          </form>
+          <p class="error" ng-if="readingError">{{readingError}}</p>
+        </div>
+        <div class="panel"><div class="panel-heading"><h3>Reading history</h3><div class="row-actions"><button class="secondary" type="button" ng-click="loadDemoReadings()">Load demo readings</button><input class="search" ng-model="readingSearch" placeholder="Search date..."></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Previous</th><th>Current</th><th>Units</th><th>Estimated bill</th><th></th></tr></thead>
+          <tbody><tr ng-repeat="r in readings | filter:readingSearch | orderBy:'date':true track by r.id"><td>{{r.date}}</td><td>{{r.previous | number:1}}</td><td>{{r.current | number:1}}</td><td><strong>{{r.units | number:1}}</strong></td><td>₹{{r.bill | number:2}}</td><td><button class="danger-link" ng-click="deleteReading(r.id)">Delete</button></td></tr>
+          <tr ng-if="!readings.length"><td colspan="6" class="table-empty">No readings saved yet.</td></tr></tbody></table></div>
+        </div>
+      </section>
+
+      <section ng-if="page==='appliances'">
+        <div class="page-intro"><h2>Appliance usage estimator</h2><p class="subtext">Estimate how much common appliances may use in a month.</p></div>
+        <div class="dashboard-grid appliance-layout">
+          <div class="panel"><h3>Add appliance</h3><form ng-submit="addAppliance()" class="stack-form">
+            <label>Appliance name<input ng-model="applianceForm.name" placeholder="e.g. Ceiling fan" required></label>
+            <div class="form-grid two"><label>Power (watts)<input type="number" min="1" ng-model="applianceForm.watts" required></label><label>Hours used daily<input type="number" min="0" max="24" step="0.5" ng-model="applianceForm.hours" required></label></div>
+            <label>Quantity<input type="number" min="1" step="1" ng-model="applianceForm.quantity" required></label>
+            <button class="primary" type="submit">＋ Add appliance</button><p class="error" ng-if="applianceError">{{applianceError}}</p>
+          </form></div>
+          <div class="panel estimate-card"><div class="metric-icon teal">ϟ</div><p class="subtext">Estimated monthly appliance usage</p><h2>{{applianceUnits() | number:1}} <small>kWh</small></h2><p class="subtext">Estimated monthly cost</p><h2>₹{{applianceCost() | number:0}}</h2><p class="small-note">Estimate assumes 30 days of similar use. Actual consumption may vary.</p></div>
+        </div>
+        <div class="panel"><div class="panel-heading"><h3>Your appliances</h3><button class="secondary" ng-click="loadExamples()">Load example appliances</button></div>
+          <div class="table-wrap"><table><thead><tr><th>Appliance</th><th>Power</th><th>Hours/day</th><th>Qty</th><th>kWh/month</th><th>Cost/month</th><th></th></tr></thead>
+          <tbody><tr ng-repeat="a in appliances track by a.id"><td>{{a.name}}</td><td>{{a.watts}} W</td><td>{{a.hours}}</td><td>{{a.quantity}}</td><td>{{applianceItemUnits(a) | number:1}}</td><td>₹{{applianceItemCost(a) | number:0}}</td><td><button class="danger-link" ng-click="removeAppliance(a.id)">Remove</button></td></tr><tr ng-if="!appliances.length"><td colspan="7" class="table-empty">Add appliances or load examples to begin.</td></tr></tbody></table></div>
+        </div>
+      </section>
+
+      <section ng-if="page==='saving'">
+        <div class="page-intro"><h2>Smart saving coach</h2><p class="subtext">Practical suggestions based on your budget and recorded usage.</p></div>
+        <div class="coach-banner"><div><span class="eyebrow">YOUR PERSONAL ENERGY COACH</span><h2>Save energy, one habit at a time.</h2><p>Choose a few changes you can maintain consistently.</p></div><div class="coach-emoji">🌱</div></div>
+        <div class="stats-grid two-stats"><div class="metric-card"><span>Usage reduction goal</span><h2>10%</h2><p class="metric-foot">Compare with your previous month when data is available.</p></div><div class="metric-card"><span>Possible monthly savings</span><h2>₹{{potentialSavings() | number:0}}</h2><p class="metric-foot">Illustrative estimate if usage falls by 10%.</p></div></div>
+        <div class="tip-grid"><div class="tip-card" ng-repeat="tip in tips"><div class="tip-icon">{{tip.icon}}</div><span class="tip-category">{{tip.category}}</span><h3>{{tip.title}}</h3><p>{{tip.text}}</p><label class="check-row"><input type="checkbox" ng-model="tip.done" ng-change="saveTips()"> Mark as tried</label></div></div>
+        <div class="panel"><h3>Smart usage alert</h3><p ng-if="!readings.length" class="subtext">Add meter readings to get a usage comparison.</p><p ng-if="readings.length">{{usageInsight()}}</p><p class="small-note">Tips are general guidance. Actual savings depend on your appliances, habits, and electricity tariff.</p></div>
+      </section>
+
+      <section ng-if="page==='reports'">
+        <div class="page-intro"><h2>Reports & goals</h2><p class="subtext">Compare usage, track your weekly challenge, and review your estimates.</p></div>
+        <div class="stats-grid"><div class="metric-card"><span>Current month units</span><h2>{{monthUnits() | number:1}} kWh</h2></div><div class="metric-card"><span>Previous month units</span><h2>{{previousMonthUnits() | number:1}} kWh</h2></div><div class="metric-card"><span>Month-on-month change</span><h2>{{monthChangePercent() | number:1}}%</h2><p class="metric-foot">{{monthChangeText()}}</p></div></div>
+        <div class="dashboard-grid">
+          <div class="panel"><h3>Monthly comparison</h3><div class="compare-bars"><div><span>This month</span><div class="compare-track"><div class="compare-fill" ng-style="{width:comparisonWidth(monthUnits())}"></div></div><strong>{{monthUnits() | number:1}} kWh</strong></div><div><span>Previous month</span><div class="compare-track"><div class="compare-fill previous" ng-style="{width:comparisonWidth(previousMonthUnits())}"></div></div><strong>{{previousMonthUnits() | number:1}} kWh</strong></div></div><p class="small-note">Comparison uses the dates of saved readings. For meaningful month totals, enter readings regularly.</p></div>
+          <div class="panel challenge"><div class="challenge-icon">🏆</div><span class="eyebrow">7-DAY CHALLENGE</span><h3>Make one energy-smart choice each day</h3><p class="subtext">Tick off your daily actions and build a consistent habit.</p><div class="challenge-progress"><div class="progress"><div class="progress-fill" ng-style="{width:(challengeCount()/7*100)+'%'}"></div></div><strong>{{challengeCount()}} / 7 complete</strong></div><div class="challenge-days"><label ng-repeat="day in challengeDays track by $index"><input type="checkbox" ng-model="challengeDays[$index]" ng-change="saveChallenge()"> Day {{$index+1}}</label></div><p class="success" ng-if="challengeCount()===7">Fantastic! You've completed the challenge. Keep it going!</p></div>
+        </div>
+        <div class="panel"><div class="panel-heading"><h3>All saved readings</h3><button class="secondary" ng-click="exportCSV()">Export CSV</button></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Units</th><th>Estimated bill</th></tr></thead><tbody><tr ng-repeat="r in readings | orderBy:'date':true track by r.id"><td>{{r.date}}</td><td>{{r.units | number:1}} kWh</td><td>₹{{r.bill | number:2}}</td></tr><tr ng-if="!readings.length"><td colspan="3" class="table-empty">No data to report yet.</td></tr></tbody></table></div></div>
+      </section>
+      <footer class="app-footer">WattWise · Electricity Usage Tracker <span>Estimates only — not an official utility bill.</span></footer>
+    </main>
+  </div>
+</body>
+</html>
